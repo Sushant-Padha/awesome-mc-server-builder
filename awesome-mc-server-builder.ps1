@@ -191,8 +191,6 @@ function Get-ngrok {
     Write-Host ""
 }
 
-function Setup {}
-
 function New-configure_server_ps1 {
     <#
     .SYNOPSIS
@@ -335,6 +333,8 @@ function Show-Progress {
         $SB.Invoke()
     }
 }
+
+function Start-SetupWizard {}
 
 
 Write-Host ""
