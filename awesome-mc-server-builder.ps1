@@ -37,7 +37,7 @@
 #>
 param(
     [string]
-    [Parameter(HelpMessage="name of server",Mandatory)]
+    [Parameter(HelpMessage="name of server",Mandatory=$false)]
     $Name
     ,
     [string]
@@ -98,7 +98,7 @@ function Get-FabricServer() {
     
     ## Automatic Download
     $Links=(Invoke-WebRequest -Uri $UrlPrefix).Links
-    If ($FabricBuild -in "","latest","0"){
+    If ($FabricBuild -in "","latest",""){
         $Latest=(Get-LatestVersionFromLinks -Links $Links).href.Trim('/')
         $FabricBuild=$Latest
     }
@@ -131,14 +131,14 @@ function Get-ForgeServer($Version) {
 }
 
 function Get-Server($Type) {
-    Write-Host "1 DOWNLOADING AND SETTING UP SERVER ..." -ForegroundColor Green
+    Write-Host "DOWNLOADING AND SETTING UP SERVER ..." -ForegroundColor Green
     switch ($Type) {
         "Fabric" { Get-FabricServer }
         "Paper" { Get-PaperServer }
         "Forge" { Get-ForgeServer }
         Default {}
     }
-    Write-Host "1 DONE" -ForegroundColor Green
+    Write-Host "DONE" -ForegroundColor Green
     Write-Host ""
 }
 
@@ -148,7 +148,7 @@ function Get-ngrok {
         Setup ngrok
         Requires an ngrok account
     #>
-    Write-Host "2 DOWNLOADING AND SETTING UP NGROK ..." -ForegroundColor Green
+    Write-Host "DOWNLOADING AND SETTING UP NGROK ..." -ForegroundColor Green
     $Login="https://dashboard.ngrok.com/login"
     $GetAuthtoken="https://dashboard.ngrok.com/get-started/your-authtoken"
     $DownloadUrl="https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip"
@@ -187,7 +187,7 @@ function Get-ngrok {
     Write-Host "Setting up ngrok..."
     cmd /c ".\ngrok authtoken $Authtoken" > "ngrok-auth.log"
     Write-Host "Done."
-    Write-Host "2 DONE" -ForegroundColor Green
+    Write-Host "DONE" -ForegroundColor Green
     Write-Host ""
 }
 
@@ -196,7 +196,7 @@ function New-configure_server_ps1 {
     .SYNOPSIS
         Create `configure_server.ps1` file
     #>
-    Write-Host "3 CREATING configure_server.ps1 ..." -ForegroundColor Green
+    Write-Host "CREATING configure_server.ps1 ..." -ForegroundColor Green
     Write-Host "Run the configure_server.ps1 file after running the server atleast once"
 
     $contents = {
@@ -226,7 +226,7 @@ Write-Host "Done."
     # substitute variable values
     $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
     Set-Content -Path "$Path\configure_server.ps1" -Value $contentsString
-    Write-Host "3 DONE" -ForegroundColor Green
+    Write-Host "DONE" -ForegroundColor Green
     Write-Host ""
 }
 
@@ -235,7 +235,7 @@ function New-start_ps1 {
     .SYNOPSIS
         Create `start.ps1` file to start server
     #>
-    Write-Host "4 CREATING start.ps1 ..." -ForegroundColor Green
+    Write-Host "CREATING start.ps1 ..." -ForegroundColor Green
     Write-Host "Run the start.ps1 file after the server setup is complete and after running configure_server.ps1"
 
     $contents = {
@@ -258,12 +258,12 @@ cmd /c "java -Xms`${RAM_MB}M -Xmx`${RAM_MB}M `$JavaArgs -jar `$JarFile `$JarArgs
     # substitute variable values
     $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
     Set-Content -Path "$Path\start.ps1" -Value $contentsString
-    Write-Host "4 DONE" -ForegroundColor Green
+    Write-Host "DONE" -ForegroundColor Green
     Write-Host ""
 }
 
 function Cleanup {
-    Write-Host "5 FINISHING ..." -ForegroundColor Green
+    Write-Host "FINISHING ..." -ForegroundColor Green
     Set-Location $CWD
     Write-Host ""
 @"
@@ -285,7 +285,7 @@ INSTRUCTIONS:
     - have fun playing!
 "@ | Write-Host
 
-Write-Host "5 DONE" -ForegroundColor Green
+Write-Host "DONE" -ForegroundColor Green
 Write-Host ""
 }
 
@@ -334,7 +334,25 @@ function Show-Progress {
     }
 }
 
-function Start-SetupWizard {}
+function Start-SetupWizard {
+    If ($Name -ne $null){
+        return
+    }
+    Write-Host "RUNNING SETUP WIZARD ..." -ForegroundColor Green
+
+    $opt=[PSCustomObject]@{
+        Name = $null
+        Help = $null
+        Type = $null
+        Value = $null
+        Default = $null
+    }
+
+    $options=[PSCustomObject]@{
+        Name = $null
+    }
+    Write-Host "DONE" -ForegroundColor Green
+}
 
 
 Write-Host ""
@@ -343,7 +361,8 @@ Write-Host "STARTING" -ForegroundColor Yellow
 
 Write-Host ""
 
-@"This script will help you build your own minecraft server and host it using ngrok! (inspired by https://github.com/SirDankenstien/dank.serverbuilder)
+@"
+This script will help you build your own minecraft server and host it using ngrok! (inspired by https://github.com/SirDankenstien/dank.serverbuilder)
 
 Prerequisites:
     - Java pre-downloaded on the system (see https://minecraft.fandom.com/wiki/Tutorials/Update_Java#Where_to_download to see which java version and build is best for your OS and architecture for minecraft)
@@ -371,6 +390,10 @@ $global:JarFile="$Path\server.jar"
 Write-Host ""
 
 Start-Sleep 3
+
+# Start-SetupWizard
+
+# Start-Sleep 3
 
 Get-Server -Type $Type
 
