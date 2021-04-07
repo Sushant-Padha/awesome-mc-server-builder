@@ -7,13 +7,13 @@ builds a [minecraft](https://minecraft.net) server with all the necessary files,
 ## Installation
 
 Prerequisites:
-    - Java pre-downloaded on the system (see https://minecraft.fandom.com/wiki/Tutorials/Update_Java#Where_to_download to see which java version and build is best for your OS and architecture for minecraft)
-    - A free account on https://ngrok.com
+- Java pre-downloaded on the system (see https://minecraft.fandom.com/wiki/Tutorials/Update_Java#Where_to_download to see which java version and build is best for your OS and architecture for minecraft)
+- A free account on https://ngrok.com
 
 This script can be downloaded in two ways:
 
 1. **BASIC**
-    Download source code zip
+    Download source code zip and unzip it anywhere
 
 2. **ADVANCED**
     `git clone` the repo

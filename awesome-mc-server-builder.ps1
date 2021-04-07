@@ -18,13 +18,15 @@
 .PARAMETER NgrokArgs
     extra args to pass to ngrok executable (example: -region=uk or -region=in)
 .EXAMPLE
-    ./build-server.ps1 -Name="MineCity" -Location="C:\servers" -Type="Forge" -RAM_MB=2048 -JavaArgs="-XX:+UseG1GC" -NgrokArgs="-region=uk"
+    ./awesome-mc-server-builder.ps1 -Name="MineCity" -Location="C:\servers" -Type="Forge" -RAM_MB=2048 -JavaArgs="-XX:+UseG1GC" -NgrokArgs="-region=uk"
     # Create new Forge server named 'MineCity' in C:\servers folder with 2048M RAM allocated, passing args to java exeuctable and passing args to ngrok executable
 .EXAMPLE
-    ./build-server.ps1 -Name="home" -Location="D:\" -Type="Fabric" -RAM_MB=1024 -AllowOffline -JarArgs="-bonusChest"
+    ./awesome-mc-server-builder.ps1 -Name="home" -Location="D:\" -Type="Fabric" -RAM_MB=1024 -AllowOffline -JarArgs="-bonusChest"
     # Create new Fabric server named 'home' on D: drive with 1024M RAM allocated and use a gui (bcz it overwrites default value of "-nogui") and bonusChest
 .NOTES
-    Requires having java (atleast v8) preinstalled on system
+    Prerequisites:
+    - Java pre-downloaded on the system (see https://minecraft.fandom.com/wiki/Tutorials/Update_Java#Where_to_download to see which java version and build is best for your OS and architecture for minecraft)
+    - A free account on https://ngrok.com
 .LINK
     Fabric server: https://fabricmc.net/wiki/tutorial:installing_minecraft_fabric_server
     Paper server: https://papermc.io
@@ -79,9 +81,6 @@ If ($PSEdition -eq "Core"){
 If (!(Test-Path $Location)){
     throw "Location '$Location' does not exist"
 }
-
-$JobEndStates="Completed","Failed","Stopped","Suspended","Disconnected"
-$BadJobEndStates="Failed","Stopped","Suspended","Disconnected"
 
 function Get-PaperServer() {
     throw "Sorry installing paper server does not work yet :("
@@ -347,7 +346,7 @@ Write-Host ""
 @"This script will help you build your own minecraft server and host it using ngrok! (inspired by https://github.com/SirDankenstien/dank.serverbuilder)
 
 Prerequisites:
-    - Java pre-downloaded on the system (see https://www.oracle.com/java/technologies/ to download latest java version for your OS and architecture)
+    - Java pre-downloaded on the system (see https://minecraft.fandom.com/wiki/Tutorials/Update_Java#Where_to_download to see which java version and build is best for your OS and architecture for minecraft)
     - A free account on https://ngrok.com
 "@ | Write-Host
 
@@ -365,6 +364,8 @@ try {
 
 Set-Location $Path
 
+$global:JobEndStates="Completed","Failed","Stopped","Suspended","Disconnected"
+$global:BadJobEndStates="Failed","Stopped","Suspended","Disconnected"
 $global:JarFile="$Path\server.jar"
 
 Write-Host ""
