@@ -207,21 +207,21 @@ begin {
         $contents = {
 Write-Host "Configuring Server..."
 
-`$Name="$Name"
-`$Path="$Path"
-`$Type="$Type"
-`$RAM_MB=$RAM_MB
-`$AllowOffline=`$$AllowOffline
+$_Name="$Name"
+$_Path="$Path"
+$_Type="$Type"
+$_RAM_MB=$RAM_MB
+$_AllowOffline=`$$AllowOffline
 
 try {
 
-        If (`$AllowOffline){
-            (Get-Content "`$Path\server.properties" -Raw) -replace "online-mode=true","online-mode=false" | Set-Content "`$Path\server.properties"
+        If ($_AllowOffline){
+            (Get-Content "$Path\server.properties" -Raw) -replace "online-mode=true","online-mode=false" | Set-Content "$Path\server.properties"
         }
 
-        (Get-Content "`$Path\server.properties" -Raw) -replace "motd=A Minecraft Server","motd=\u00A7a---\u00A76>\u00A7b\u00A7l `$Name \u00A76<\u00A7a---" | Set-Content "`$Path\server.properties"
+        (Get-Content "$Path\server.properties" -Raw) -replace "motd=A Minecraft Server","motd=\u00A7a---\u00A76>\u00A7b\u00A7l `$Name \u00A76<\u00A7a---" | Set-Content "$Path\server.properties"
 
-        (Get-Content "`$Path\eula.txt" -Raw) -replace 'false','true' | Set-Content "`$Path\eula.txt"
+        (Get-Content "$Path\eula.txt" -Raw) -replace 'false','true' | Set-Content "$Path\eula.txt"
 } catch {
         throw "Could not change server.properties and/or eula.txt.`nCheck if these files exist, and have write permissions."
 }
@@ -247,38 +247,38 @@ Write-Host "Done."
 param(
     [Int16]
     [Parameter(HelpMessage="amount of RAM in MB allocated to server to run")]
-    `$RAM_MB=$RAM_MB
+    $_RAM_MB=$RAM_MB
     ,
     [string]
     [Parameter(HelpMessage="extra args to pass to java executable (in addition to memory allocation)")]
-    `$JavaArgs=$JavaArgs
+    $_JavaArgs=$JavaArgs
     ,
     [string]
     [Parameter(HelpMessage="extra args to pass to server jar file")]
-    `$JarArgs=$JarArgs
+    $_JarArgs=$JarArgs
     ,
     [string]
     [Parameter(HelpMessage="extra args to pass to ngrok executable (example: -region=uk or -region=in)")]
-    `$NgrokArgs=$NgrokArgs
+    $_NgrokArgs=$NgrokArgs
 )
 Write-Host "Starting server..."
 Write-Host "To stop server, type the command `stop` or `/stop` in the server console, and close the ngrok cmd window that appears"
 Write-Host "You can also pass arguments to this script to change the amount of RAM_MB or JavaArgs or NgrokArgs for a specific session" -Grey
 Write-Host ""
 
-`$Name="$Name"
-`$Path="$Path"
-`$Type="$Type"
-`$RAM_MB=$RAM_MB
-`$AllowOffline=`$$AllowOffline
-`$JarFile="$JarFile"
-`$JavaArgs="$JavaArgs"
-`$JarArgs="$JarArgs"
-`$NgrokArgs="$NgrokArgs"
+$_Name="$Name"
+$_Path="$Path"
+$_Type="$Type"
+$_RAM_MB=$RAM_MB
+$_AllowOffline=`$$AllowOffline
+$_JarFile="$JarFile"
+$_JavaArgs="$JavaArgs"
+$_JarArgs="$JarArgs"
+$_NgrokArgs="$NgrokArgs"
 
-Start-Process -FilePath "cmd" -ArgumentList "/k .\ngrok tcp `$NgrokArgs 25565"
+Start-Process -FilePath "cmd" -ArgumentList "/k .\ngrok tcp $_NgrokArgs 25565"
 
-cmd /c "java -Xms`${RAM_MB}M -Xmx`${RAM_MB}M `$JavaArgs -jar `$JarFile `$JarArgs"
+cmd /c "java -Xms${_RAM_MB}M -Xmx${_RAM_MB}M $_JavaArgs -jar $_JarFile $_JarArgs"
     }
         # substitute variable values
         $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
