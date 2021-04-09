@@ -70,136 +70,141 @@ param(
     $NgrokArgs=""
 )
 
-If (!($env:OS -eq "Windows_NT")){
-    throw "This script only works on Windows OS currently :("
-}
+begin {
 
-If ($PSEdition -eq "Core"){
-    throw "Use executable ``powershell.exe`` instead of ``pwsh.exe```nThis script only works with Windows Powershell v5 currently :("
-}
-
-If (!(Test-Path $Location)){
-    throw "Location '$Location' does not exist"
-}
-
-function Get-PaperServer() {
-    throw "Sorry installing paper server does not work yet :("
-}
-
-function Get-FabricServer() {
-    <#
-    .SYNOPSIS
-    Download fabric-installer.jar file and run it for making server
-    #>
-    $UrlPrefix="https://maven.fabricmc.net/net/fabricmc/fabric-installer/"
-    $DownloadPath="$Path\fabric-installer.jar"
-    
-    $FabricBuild=(Read-Host "fabric installer version to download?`n(Note: this is different from minecraft version, i.e., not something like 1.16.5 or 1.14.4)`n(Leave this empty to use the default latest stable version)")
-    
-    ## Automatic Download
-    $Links=(Invoke-WebRequest -Uri $UrlPrefix).Links
-    If ($FabricBuild -in "","latest",""){
-        $Latest=(Get-LatestVersionFromLinks -Links $Links).href.Trim('/')
-        $FabricBuild=$Latest
+    If (!($env:OS -eq "Windows_NT")){
+        throw "This script only works on Windows OS currently :("
     }
-    $DownloadUrl="${UrlPrefix}${FabricBuild}/fabric-installer-$FabricBuild.jar"
-    
-    Write-Host "Downloading latest fabric server installer ... "
-    try{
-        Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath
-    } catch {
-        throw "Could not download fabric version. `$DownloadUrl: $DownloadUrl `$DownloadPath: $DownloadPath"
+
+    # If ($PSEdition -eq "Core"){
+    #     throw "This script only works with Windows Powershell v5 currently :(`nUse executable ``powershell.exe`` instead of ``pwsh.exe``"
+    # }
+
+    If (!(Test-Path $Location)){
+        throw "Location '$Location' does not exist"
     }
-    Write-Host "Done."
-    
-    Write-Host "Installing fabric server ..."
-    Start-Sleep 5
-    $Command={cmd /c "java -jar ""$DownloadPath"" server -dir ""$Path"" -downloadMinecraft >""installing-fabric-server.log"" "}
-    Start-Job $Command | Show-Progress
-    Write-Host "Done."
-    
-    Write-Host "Running fabric server ..."
-    $JarFile="$Path\fabric-server-launch.jar"
-    $Commmand={cmd /c "java -Xmx${RAM_MB}M -jar ""$JarFile"" -initSettings -nogui >""running-fabric-server.log"""}
-    Start-Job $Command | Show-Progress
-    $global:JarFile=$JarFile
-    Write-Host "Done."
-}
 
-function Get-ForgeServer($Version) {
-    throw "Sorry installing forge server does not work yet :("
-}
-
-function Get-Server($Type) {
-    Write-Host "DOWNLOADING AND SETTING UP SERVER ..." -ForegroundColor Green
-    switch ($Type) {
-        "Fabric" { Get-FabricServer }
-        "Paper" { Get-PaperServer }
-        "Forge" { Get-ForgeServer }
-        Default {}
+    function Get-PaperServer() {
+        throw "Sorry installing paper server does not work yet :("
     }
-    Write-Host "DONE" -ForegroundColor Green
-    Write-Host ""
-}
 
-function Get-ngrok {
-    <#
-    .SYNOPSIS
-        Setup ngrok
-        Requires an ngrok account
-    #>
-    Write-Host "DOWNLOADING AND SETTING UP NGROK ..." -ForegroundColor Green
-    $Login="https://dashboard.ngrok.com/login"
-    $GetAuthtoken="https://dashboard.ngrok.com/get-started/your-authtoken"
-    $DownloadUrl="https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip"
-    $DownloadPath="$Path\ngrok.zip"
-
-    Write-Host "Downloading ngrok..."
-    try {
-        Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath
-    } catch {
-        throw "Could not download ngrok. `$DownloadUrl: $DownloadUrl `$DownloadPath: $DownloadPath"
-    }
-    Write-Host "Done."
-
-    Write-Host "Unpacking ngrok.zip..."
-    Expand-Archive -Path $DownloadPath -DestinationPath $Path -Force
-    Write-Host "Done."
-
-    Write-Host "Cleaning up ngrok.zip..."
-    Remove-Item -Path $DownloadPath -Force
-    Write-Host "Done."
-    
-    $AccExists=(Read-Host "Do you have an ngrok (https://ngrok.com) account? [Y/n] ")
-    If ($AccExists -eq "n"){ $AccExists=$false } else { $AccExists=$true }
-    IF ($AccExists -eq $false){
-        Write-Host "Login on the site that appears"
+    function Get-FabricServer() {
+        <#
+        .SYNOPSIS
+        Download fabric-installer.jar file and run it for making server
+        #>
+        $UrlPrefix="https://maven.fabricmc.net/net/fabricmc/fabric-installer/"
+        $DownloadPath="$Path\fabric-installer.jar"
+        
+        $FabricBuild=(Read-Host "fabric installer version to download?`n(Note: this is different from minecraft version, i.e., not something like 1.16.5 or 1.14.4)`n(Leave this empty to use the default latest stable version)")
+        
+        ## Automatic Download
+        $Links=(Invoke-WebRequest -Uri $UrlPrefix).Links
+        If ($FabricBuild -in "","latest",""){
+            $Latest=(Get-LatestVersionFromLinks -Links $Links).href.Trim('/')
+            $FabricBuild=$Latest
+            Write-Debug "Get-FabricServer: `$Latest(latest version link)=$Latest"
+        }
+        $DownloadUrl="${UrlPrefix}${FabricBuild}/fabric-installer-$FabricBuild.jar"
+        Write-Debug "Get-FabricServer: `$DownloadUrl=$DownloadUrl"
+        
+        Write-Host "Downloading latest fabric server installer ... "
+        try{
+            Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath
+        } catch {
+            throw "Could not download fabric version. `$DownloadUrl: $DownloadUrl `$DownloadPath: $DownloadPath"
+        }
+        Write-Host "Done."
+        
+        Write-Host "Installing fabric server ..."
         Start-Sleep 5
-        Start-Process -FilePath $Login
-        Read-Host "[press enter to continue]"
+        $Command="java -jar $DownloadPath server -dir $Path -downloadMinecraft > $Path\installing-fabric-server.log"
+        Start-Job -ScriptBlock $([scriptblock]::create($Command)) | Show-Progress
+        Write-Host "Done."
+        
+        Write-Host "Running fabric server ..."
+        $JarFile="$Path\fabric-server-launch.jar"
+        $Command="java -Xmx${RAM_MB}M -jar $JarFile -initSettings -nogui > $Path\running-fabric-server.log"
+        Start-Job -ScriptBlock $([scriptblock]::create($Command)) | Show-Progress
+        $global:JarFile=$JarFile
+        Write-Host "Done."
     }
 
-    Write-Host "On the following site, look for the authtoken and copy it"
-    Start-Sleep 5
-    Start-Process -FilePath $GetAuthtoken
-    $Authtoken=(Read-Host "Paste the authtoken here")
+    function Get-ForgeServer($Version) {
+        throw "Sorry installing forge server does not work yet :("
+    }
 
-    Write-Host "Setting up ngrok..."
-    cmd /c ".\ngrok authtoken $Authtoken" > "ngrok-auth.log"
-    Write-Host "Done."
-    Write-Host "DONE" -ForegroundColor Green
-    Write-Host ""
-}
+    function Get-Server($Type) {
+        Write-Host "DOWNLOADING AND SETTING UP SERVER ..." -ForegroundColor Green
+        switch ($Type) {
+            "Fabric" { Get-FabricServer }
+            "Paper" { Get-PaperServer }
+            "Forge" { Get-ForgeServer }
+            Default {}
+        }
+        Write-Host "DONE" -ForegroundColor Green
+        Write-Host ""
+    }
 
-function New-configure_server_ps1 {
-    <#
-    .SYNOPSIS
-        Create `configure_server.ps1` file
-    #>
-    Write-Host "CREATING configure_server.ps1 ..." -ForegroundColor Green
-    Write-Host "Run the configure_server.ps1 file after running the server atleast once"
+    function Get-ngrok {
+        <#
+        .SYNOPSIS
+            Setup ngrok
+            Requires an ngrok account
+        #>
+        Write-Host "DOWNLOADING AND SETTING UP NGROK ..." -ForegroundColor Green
+        $Login="https://dashboard.ngrok.com/login"
+        $GetAuthtoken="https://dashboard.ngrok.com/get-started/your-authtoken"
+        $DownloadUrl="https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip"
+        $DownloadPath="$Path\ngrok.zip"
 
-    $contents = {
+        Write-Host "Downloading ngrok..."
+        try {
+            Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath
+        } catch {
+            throw "Could not download ngrok. `$DownloadUrl: $DownloadUrl `$DownloadPath: $DownloadPath"
+        }
+        Write-Host "Done."
+
+        Write-Host "Unpacking ngrok.zip..."
+        Expand-Archive -Path $DownloadPath -DestinationPath $Path -Force
+        Write-Host "Done."
+
+        Write-Host "Cleaning up ngrok.zip..."
+        Remove-Item -Path $DownloadPath -Force
+        Write-Host "Done."
+        
+        $AccExists=(Read-Host "Do you have an ngrok (https://ngrok.com) account? [Y/n] ")
+        If ($AccExists -eq "n"){ $AccExists=$false } else { $AccExists=$true }
+        IF ($AccExists -eq $false){
+            Write-Host "Login on the site that appears"
+            Start-Sleep 5
+            Start-Process -FilePath $Login
+            Read-Host "[press enter to continue]"
+        }
+
+        Write-Host "On the following site, look for the authtoken and copy it"
+        Start-Sleep 5
+        Start-Process -FilePath $GetAuthtoken
+        $Authtoken=(Read-Host "Paste the authtoken here")
+
+        Write-Host "Setting up ngrok..."
+        $Command=".\ngrok authtoken $Authtoken > $Path\ngrok-auth.log"
+        Start-Job -ScriptBlock $([scriptblock]::create($Command)) | Show-Progress
+        Write-Host "Done."
+        Write-Host "DONE" -ForegroundColor Green
+        Write-Host ""
+    }
+
+    function New-configure_server_ps1 {
+        <#
+        .SYNOPSIS
+            Create `configure_server.ps1` file
+        #>
+        Write-Host "CREATING configure_server.ps1 ..." -ForegroundColor Green
+        Write-Host "Run the configure_server.ps1 file after running the server atleast once"
+
+        $contents = {
 Write-Host "Configuring Server..."
 
 `$Name="$Name"
@@ -210,36 +215,56 @@ Write-Host "Configuring Server..."
 
 try {
 
-    If (`$AllowOffline){
-        (Get-Content "`$Path\server.properties" -Raw) -replace "online-mode=true","online-mode=false" | Set-Content "`$Path\server.properties"
-    }
+        If (`$AllowOffline){
+            (Get-Content "`$Path\server.properties" -Raw) -replace "online-mode=true","online-mode=false" | Set-Content "`$Path\server.properties"
+        }
 
-    (Get-Content "`$Path\server.properties" -Raw) -replace "motd=A Minecraft Server","motd=\u00A7a---\u00A76>\u00A7b\u00A7l `$Name \u00A76<\u00A7a---" | Set-Content "`$Path\server.properties"
+        (Get-Content "`$Path\server.properties" -Raw) -replace "motd=A Minecraft Server","motd=\u00A7a---\u00A76>\u00A7b\u00A7l `$Name \u00A76<\u00A7a---" | Set-Content "`$Path\server.properties"
 
-    (Get-Content "`$Path\eula.txt" -Raw) -replace 'false','true' | Set-Content "`$Path\eula.txt"
+        (Get-Content "`$Path\eula.txt" -Raw) -replace 'false','true' | Set-Content "`$Path\eula.txt"
 } catch {
-    throw "Could not change server.properties and/or eula.txt.`nCheck if these files exist, and have write permissions."
+        throw "Could not change server.properties and/or eula.txt.`nCheck if these files exist, and have write permissions."
 }
 
 Write-Host "Done."
-}
-    # substitute variable values
-    $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
-    Set-Content -Path "$Path\configure_server.ps1" -Value $contentsString
-    Write-Host "DONE" -ForegroundColor Green
-    Write-Host ""
-}
+    }
+        # substitute variable values
+        $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
+        Set-Content -Path "$Path\configure_server.ps1" -Value $contentsString
+        Write-Host "DONE" -ForegroundColor Green
+        Write-Host ""
+    }
 
-function New-start_ps1 {
-    <#
-    .SYNOPSIS
-        Create `start.ps1` file to start server
-    #>
-    Write-Host "CREATING start.ps1 ..." -ForegroundColor Green
-    Write-Host "Run the start.ps1 file after the server setup is complete and after running configure_server.ps1"
+    function New-start_ps1 {
+        <#
+        .SYNOPSIS
+            Create `start.ps1` file to start server
+        #>
+        Write-Host "CREATING start.ps1 ..." -ForegroundColor Green
+        Write-Host "Run the start.ps1 file after the server setup is complete and after running configure_server.ps1"
 
-    $contents = {
+        $contents = {
+param(
+    [Int16]
+    [Parameter(HelpMessage="amount of RAM in MB allocated to server to run")]
+    `$RAM_MB=$RAM_MB
+    ,
+    [string]
+    [Parameter(HelpMessage="extra args to pass to java executable (in addition to memory allocation)")]
+    `$JavaArgs=$JavaArgs
+    ,
+    [string]
+    [Parameter(HelpMessage="extra args to pass to server jar file")]
+    `$JarArgs=$JarArgs
+    ,
+    [string]
+    [Parameter(HelpMessage="extra args to pass to ngrok executable (example: -region=uk or -region=in)")]
+    `$NgrokArgs=$NgrokArgs
+)
 Write-Host "Starting server..."
+Write-Host "To stop server, type the command `stop` or `/stop` in the server console, and close the ngrok cmd window that appears"
+Write-Host "You can also pass arguments to this script to change the amount of RAM_MB or JavaArgs or NgrokArgs for a specific session" -Grey
+Write-Host ""
 
 `$Name="$Name"
 `$Path="$Path"
@@ -254,112 +279,152 @@ Write-Host "Starting server..."
 Start-Process -FilePath "cmd" -ArgumentList "/k .\ngrok tcp `$NgrokArgs 25565"
 
 cmd /c "java -Xms`${RAM_MB}M -Xmx`${RAM_MB}M `$JavaArgs -jar `$JarFile `$JarArgs"
-}
-    # substitute variable values
-    $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
-    Set-Content -Path "$Path\start.ps1" -Value $contentsString
-    Write-Host "DONE" -ForegroundColor Green
-    Write-Host ""
-}
+    }
+        # substitute variable values
+        $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
+        Set-Content -Path "$Path\start.ps1" -Value $contentsString
+        Write-Host "DONE" -ForegroundColor Green
+        Write-Host ""
+    }
 
-function Cleanup {
-    Write-Host "FINISHING ..." -ForegroundColor Green
-    Set-Location $CWD
-    Write-Host ""
+    function Cleanup {
+        Write-Host "FINISHING ..." -ForegroundColor Green
+        Set-Location $CWD
+        Write-Host ""
+        $EscChar=[char]0x1b
+        $BoldEscapeSeq="${EscChar}[1m"
+        $UnformatEscapeSeq="${EscChar}[0m"
 @"
 INSTRUCTIONS:
     - run configure_server.ps1 to configure server
+    - make desired changes to server.properties file, mods, other configuration and features as per your needs
     - run start.ps1 to start server
-    - a new cmd windows will spawn showing ngrok logs
-      on that windows find the ip address
-      it will look something like this
-      eg: `e[1m 0.tcp.ngrok.io:17456 `e[0m
+    - a new cmd window will spawn showing ngrok logs
+    on that windows find the ip address
+    it will look something like this
+    eg: $BoldEscapeSeq 0.tcp.ngrok.io:17456 $UnformatEscapeSeq
     - to connect to the minecraft server
-      copy the entire ip address and paste it in the 'server address' box
-      and run
-      (note: the final 5 digits of the address will change each time you close and start serveragain)
+    copy the entire ip address and paste it in the 'server address' box
+    and run
+    (note: the final 5 digits of the address will change each time you close and start serveragain)
     - if you are playing on the same computer as the server
-      you can use the ip address "localhost:25565" instead of the above
+    you can use the ip address "localhost:25565" instead of the above
     - to stop the server, run the command "stop" or "/stop" in the server console
-      and close the ngrok cmd window
+    and close the ngrok cmd window
     - have fun playing!
 "@ | Write-Host
 
-Write-Host "DONE" -ForegroundColor Green
-Write-Host ""
-}
-
-function Get-LatestVersionFromLinks($Links) {
-    # remove alphabetic text links
-    $Links = $Links | ForEach-Object {if ($_.outerText -match ".*[a-z].*"){} else {return $_}}
-    $LatestLink=$Links[1]
-    # find latest link by comparing strings
-    foreach ($L in $Links) {
-        If ($L.outerText -gt $LatestLink.outerText){$LatestLink=$L}
+    Write-Host "DONE" -ForegroundColor Green
+    Write-Host ""
     }
-    return $LatestLink
-}
 
-function Show-Progress {
-    [CmdletBinding()]
-    param (
-        [Parameter(ValueFromPipeline)]
-        [System.Management.Automation.Job]
-        $Job
-        ,
-        [string]
-        [ValidateSet('basic_spinner','wave')]
-        $Type="basic_spinner"
-    )
+    function Get-LatestVersionFromLinks($Links) {
+        # [regex]::Match($Links[0].outerHTML,">.+<").Value.Trim('><')
+        # remove alphabetic text links
+        $Links = $Links | ForEach-Object {if ((Get-LinkOuterText $_) -match ".*[a-z].*"){} else {return $_}}
+        $LatestLink=$Links[0]
+        # find latest link by comparing strings
+        foreach ($L in $Links) {
+            If ((Get-LinkOuterText $L) -gt (Get-LinkOuterText $LatestLink)){$LatestLink=$L}
+        }
+        return $LatestLink
+    }
 
-    Write-Host "`b`b" -NoNewline
-    $SB = switch ($Type) {
-        "basic_spinner" {
-                {
-                $chrs=@('-','\','|','/')
-                foreach ($c in $chrs){
-                    Write-Host $c -NoNewLine
-                    Start-Sleep 1
-                    Write-Host "`b" -NoNewLine
+    function Get-LinkOuterText($Link) {
+        # eg: <a href='index.html'>home</a>
+        # will return home, i.e., the link text
+        return [regex]::Match($Link.outerHTML,">.+<").Value.Trim('><')
+    } 
+
+    function Show-Progress {
+        [CmdletBinding()]
+        param (
+            [Parameter(ValueFromPipeline)]
+            [System.Management.Automation.Job]
+            $Job
+            ,
+            [string]
+            [ValidateSet('basic_spinner','wave')]
+            $Type="basic_spinner"
+            ,
+            [int]
+            $Delay=500
+        )
+
+        Write-Host "`b`b" -NoNewline
+        $SB = switch ($Type) {
+            "basic_spinner" {
+                    {
+                    $chrs=@('-','\','|','/')
+                    foreach ($c in $chrs){
+                        Write-Host $c -NoNewLine
+                        Start-Sleep -Milliseconds $Delay
+                        Write-Host "`b" -NoNewLine
+                    }
                 }
             }
+            "wave" {
+                    {}
+            }
+            Default { {} }
         }
-        "wave" {
-                {}
+        while ($Job.State -notin $JobEndStates) {
+            $SB.Invoke()
         }
-        Default { {} }
     }
-    while ($Job.State -notin $JobEndStates) {
-        $SB.Invoke()
+
+    function Start-SetupWizard {
+        If ($Name -notin $null,""){
+            return
+        }
+        Write-Host "RUNNING SETUP WIZARD ..." -ForegroundColor Green
+
+        Write-Host "Enter the following values: (leave empty for default)"
+        Write-Host ""
+
+        $_Name=(Read-Host "name of server")
+        $_Location=(Read-Host "location to create server in (optional, default=$HOME)")
+        $_Type=(Read-Host "type of server: fabric/forge/paper (optional, default=Fabric)")
+        $_RAM_MB=(Read-Host "amount of RAM in MB (optional, default=2048)")
+        $_AllowOffline=(Read-Host "allow offline/cracked players: N/y  (optional, default=false)")
+
+        IF ($_Type -notin $global:Types -and $_Type -ne ""){
+            throw "Invalid type (should one of $($global:Types.ToString()))`nRestart the script"
+        }
+
+        If ($_AllowOffline -in "y","true","yes"){
+            $_AllowOffline=$true
+        } else { $_AllowOffline=$false }
+
+        $options=@{
+            Name=$_Name
+            Location=$_Location
+            Type=$_Type
+            RAM_MB=$_RAM_MB
+            AllowOffline=$_AllowOffline
+        }
+
+        foreach ($k in $options.Keys){
+            $v=$options.$k
+            Write-Debug "Start-SetupWizard: foreach loop: Key=$k, Value=$v, ValueType=$($v.GetType())"
+            If ($v -notin "",$null){
+                # change global variable value
+                Set-Variable -Name $k -Value $v -Scope global -Force
+                Set-Variable -Name $k -Value $v -Scope script -Force
+                Set-Variable -Name $k -Value $v -Scope local -Force
+            }
+        }
+        
+        Write-Host "DONE" -ForegroundColor Green
     }
 }
 
-function Start-SetupWizard {
-    If ($Name -ne $null){
-        return
-    }
-    Write-Host "RUNNING SETUP WIZARD ..." -ForegroundColor Green
+process {
+    Write-Host ""
 
-    $opt=[PSCustomObject]@{
-        Name = $null
-        Help = $null
-        Type = $null
-        Value = $null
-        Default = $null
-    }
+    Write-Host "STARTING" -ForegroundColor Yellow
 
-    $options=[PSCustomObject]@{
-        Name = $null
-    }
-    Write-Host "DONE" -ForegroundColor Green
-}
-
-
-Write-Host ""
-
-Write-Host "STARTING" -ForegroundColor Yellow
-
-Write-Host ""
+    Write-Host ""
 
 @"
 This script will help you build your own minecraft server and host it using ngrok! (inspired by https://github.com/SirDankenstien/dank.serverbuilder)
@@ -369,48 +434,65 @@ Prerequisites:
     - A free account on https://ngrok.com
 "@ | Write-Host
 
-Write-Host ""
+    Write-Host ""
 
-$CWD=(Get-Location)
+    Start-SetupWizard
 
-$Path=(Join-Path $Location $Name)
+    Start-Sleep 1 ; Write-Host ""
 
-try {
-    if (!(Test-Path $Path)){
-        New-Item -Path $Location -Name $Name -ItemType Directory -Force *> $null
-    }
-} catch { throw "Could not create path '$Path'" }
+    $CWD=(Get-Location)
 
-Set-Location $Path
+    try {
+        $Location=(Resolve-Path -Path $Location).Path
+        $Path=(Join-Path -Path $Location -ChildPath $Name)
+    } catch { throw "Invalid $Location path. Run the script again with correct path" }
 
-$global:JobEndStates="Completed","Failed","Stopped","Suspended","Disconnected"
-$global:BadJobEndStates="Failed","Stopped","Suspended","Disconnected"
-$global:JarFile="$Path\server.jar"
+    try {
+        if (!(Test-Path $Path)){
+            New-Item -Path $Location -Name $Name -ItemType Directory -Force *> $null
+        }
+    } catch { throw "Could not create path '$Path'" }
 
-Write-Host ""
+    Set-Location $Path
 
-Start-Sleep 3
+    Write-Debug "Variables:"
+    Write-Debug "`$Name=$Name"
+    Write-Debug "`$Location=$Location"
+    Write-Debug "`$Type=$Type"
+    Write-Debug "`$RAM_MB=$RAM_MB"
+    Write-Debug "`$AllowOffline=$AllowOffline"
+    Write-Debug "`$JavaArgs=$JavaArgs"
+    Write-Debug "`$JarArgs=$JarArgs"
+    Write-Debug "`$NgrokArgs=$NgrokArgs"
+    Write-Debug "`$Path=$Path"
 
-# Start-SetupWizard
+    $global:Types="Fabric","Paper","Forge"
+    $global:JobEndStates="Completed","Failed","Stopped","Suspended","Disconnected"
+    $global:BadJobEndStates="Failed","Stopped","Suspended","Disconnected"
+    $global:JarFile="$Path\server.jar"
 
-# Start-Sleep 3
+    Write-Host ""
 
-Get-Server -Type $Type
+    Start-Sleep 1 ; Write-Host ""
 
-Start-Sleep 3
+    Get-Server -Type $Type
 
-Get-ngrok
+    Start-Sleep 1 ; Write-Host ""
 
-New-configure_server_ps1
+    Get-ngrok
 
-Start-Sleep 3
+    New-configure_server_ps1
 
-New-start_ps1
+    Start-Sleep 1 ; Write-Host ""
 
-Start-Sleep 3
+    New-start_ps1
 
-Cleanup
+}
 
-Start-Sleep 3
+end {
+    Cleanup
 
-Write-Host "FINISHED" -ForegroundColor Yellow
+    Start-Sleep 1 ; Write-Host ""
+
+    Write-Host "FINISHED" -ForegroundColor Yellow
+}
