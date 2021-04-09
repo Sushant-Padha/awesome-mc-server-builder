@@ -10,15 +10,7 @@ Prerequisites:
 - Java pre-downloaded on the system (see https://minecraft.fandom.com/wiki/Tutorials/Update_Java#Where_to_download to see which java version and build is best for your OS and architecture for minecraft)
 - A free account on https://ngrok.com
 
-This script can be downloaded in two ways:
-
-1. **BASIC**
-    
-    Download source code zip and unzip it anywhere
-
-2. **ADVANCED**
-    
-    `git clone` the repo
+Download the script by downloading zip of the [source code](https://github.com/Sushant-Padha/awesome-mc-server-builder/archive/refs/heads/master.zip) and unzipping it, or using `git clone`
 
 ## Usage
 
@@ -28,7 +20,7 @@ This script can be downloaded in two ways:
 - Double-click on the `awesome-mc-server-builder.bat` file to run it
 - Follow the setup wizard on the script
 - If at any point something goes wrong, press <kbd>Ctrl+C</kbd> and start again
-- If you find any issues, please report them as an [issue](https://guides.github.com/features/issues/) under this repository (check if that issue already exists [here](./issues))
+- If you find any issues, please report them as an [issue](https://guides.github.com/features/issues/) under this repository (check if that issue already exists [here](https://github.com/Sushant-Padha/awesome-mc-server-builder/issues))
 
 ### ADVANCED USAGE
 
