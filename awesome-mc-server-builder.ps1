@@ -89,11 +89,15 @@ begin {
         .SYNOPSIS
         Download fabric-installer.jar file and run it for making server
         #>
+        Write-Progress -Activity "SETTING UP FABRIC SERVER" -PercentComplete 0
         $UrlPrefix="https://maven.fabricmc.net/net/fabricmc/fabric-installer/"
         $DownloadPath="$Path\fabric-installer.jar"
         
         $FabricBuild=(Read-Host "fabric installer version to download?`n(Note: this is different from minecraft version, i.e., not something like 1.16.5 or 1.14.4)`n(Leave this empty to use the default latest stable version)")
+
+        Write-Progress -Activity "SETTING UP FABRIC SERVER" -Status "Getting url" -PercentComplete 20
         
+        Start-Sleep 3
         ## Automatic Download
         $Links=(Invoke-WebRequest -Uri $UrlPrefix).Links
         If ($FabricBuild -in "","latest",""){
@@ -103,28 +107,28 @@ begin {
         }
         $DownloadUrl="${UrlPrefix}${FabricBuild}/fabric-installer-$FabricBuild.jar"
         Write-Debug "Get-FabricServer: `$DownloadUrl=$DownloadUrl"
-        
-        Write-Host "Downloading latest fabric server installer ... "
+
+        Write-Progress -Activity "SETTING UP FABRIC SERVER" -Status "Downloading fabric server installer" -PercentComplete 40
+        Start-Sleep 3
         try{
             Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath
         } catch {
             throw "Could not download fabric version. `$DownloadUrl: $DownloadUrl `$DownloadPath: $DownloadPath"
         }
-        Write-Host "Done."
-        
-        Write-Host "Installing fabric server ..."
-        Start-Sleep 5
+
+        Write-Progress -Activity "SETTING UP FABRIC SERVER" -Status "Installing fabric server" -PercentComplete 60
+        Start-Sleep 3
         $InstallServerCommand="java -jar $DownloadPath server -dir $Path -downloadMinecraft > $Path\installing-fabric-server.log"
         & $([scriptblock]::create($InstallServerCommand))
-        Write-Host "Done."
         
-        Write-Host "Running fabric server ..."
-        Start-Sleep 5
+        Write-Progress -Activity "SETTING UP FABRIC SERVER" -Status "Running fabric server" -PercentComplete 80
+        Write-Host "(ignore any errors)"
+        Start-Sleep 3
         $JarFile="$Path\fabric-server-launch.jar"
         $RunServerCommand="java -Xmx${RAM_MB}M -jar $JarFile -initSettings -nogui > $Path\running-fabric-server.log"
         & $([scriptblock]::create($RunServerCommand))
         $global:JarFile=$JarFile
-        Write-Host "Done."
+        Write-Progress -Activity "SETTING UP FABRIC SERVER" -Status "DONE" -PercentComplete 100
     }
 
     function Get-ForgeServer($Version) {
@@ -150,27 +154,30 @@ begin {
             Requires an ngrok account
         #>
         Write-Host "DOWNLOADING AND SETTING UP NGROK ..." -ForegroundColor Green
+        Write-Progress -Activity "DOWNLOADING AND SETTING UP NGROK" -PercentComplete 0
         $Login="https://dashboard.ngrok.com/login"
         $GetAuthtoken="https://dashboard.ngrok.com/get-started/your-authtoken"
         $DownloadUrl="https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip"
         $DownloadPath="$Path\ngrok.zip"
 
-        Write-Host "Downloading ngrok..."
+        Write-Progress -Activity "DOWNLOADING AND SETTING UP NGROK" -Status "Downloading" -PercentComplete 16
+        Start-Sleep 3
         try {
             Invoke-WebRequest -Uri $DownloadUrl -OutFile $DownloadPath
         } catch {
             throw "Could not download ngrok. `$DownloadUrl: $DownloadUrl `$DownloadPath: $DownloadPath"
         }
-        Write-Host "Done."
 
-        Write-Host "Unpacking ngrok.zip..."
+        Write-Progress -Activity "DOWNLOADING AND SETTING UP NGROK" -Status "Unpacking" -PercentComplete 33
+        Start-Sleep 3
         Expand-Archive -Path $DownloadPath -DestinationPath $Path -Force
-        Write-Host "Done."
 
-        Write-Host "Cleaning up ngrok.zip..."
+        Write-Progress -Activity "DOWNLOADING AND SETTING UP NGROK" -Status "Cleaning up" -PercentComplete 50
+        Start-Sleep 3
         Remove-Item -Path $DownloadPath -Force
-        Write-Host "Done."
         
+        Write-Progress -Activity "DOWNLOADING AND SETTING UP NGROK" -Status "Getting account info" -PercentComplete 66
+        Start-Sleep 3
         $AccExists=(Read-Host "Do you have an ngrok (https://ngrok.com) account? [Y/n] ")
         If ($AccExists -eq "n"){ $AccExists=$false } else { $AccExists=$true }
         IF ($AccExists -eq $false){
@@ -181,14 +188,15 @@ begin {
         }
 
         Write-Host "On the following site, look for the authtoken and copy it"
-        Start-Sleep 5
+        Start-Sleep 3
         Start-Process -FilePath $GetAuthtoken
         $Authtoken=(Read-Host "Paste the authtoken here")
 
-        Write-Host "Setting up ngrok..."
+        Write-Progress -Activity "DOWNLOADING AND SETTING UP NGROK" -Status "Setting up ngrok" -PercentComplete 83
+        Start-Sleep 3
         $Command=".\ngrok authtoken $Authtoken > $Path\ngrok-auth.log"
         & $([scriptblock]::create($Command))
-        Write-Host "Done."
+        Write-Progress -Activity "DOWNLOADING AND SETTING UP NGROK" -Status "DONE" -PercentComplete 100
         Write-Host "DONE" -ForegroundColor Green
         Write-Host ""
     }
@@ -201,33 +209,31 @@ begin {
         Write-Host "CREATING configure_server.ps1 ..." -ForegroundColor Green
         Write-Host "Run the configure_server.ps1 file after running the server atleast once"
 
-        $contents = {
+        $contents = @"
 Write-Host "Configuring Server..."
 
-$_Name="$Name"
-$_Path="$Path"
-$_Type="$Type"
-$_RAM_MB=$RAM_MB
-$_AllowOffline=`$$AllowOffline
+`$Name="$Name"
+`$Path="$Path"
+`$Type="$Type"
+`$RAM_MB=$RAM_MB
+`$AllowOffline=`$$AllowOffline
 
 try {
 
-        If ($_AllowOffline){
-            (Get-Content "$Path\server.properties" -Raw) -replace "online-mode=true","online-mode=false" | Set-Content "$Path\server.properties"
+        If (`$AllowOffline){
+            (Get-Content "`$Path\server.properties" -Raw) -replace "online-mode=true","online-mode=false" | Set-Content "`$Path\server.properties"
         }
 
-        (Get-Content "$Path\server.properties" -Raw) -replace "motd=A Minecraft Server","motd=\u00A7a---\u00A76>\u00A7b\u00A7l `$Name \u00A76<\u00A7a---" | Set-Content "$Path\server.properties"
+        (Get-Content "`$Path\server.properties" -Raw) -replace "motd=A Minecraft Server","motd=\u00A7a---\u00A76>\u00A7b\u00A7l `$Name \u00A76<\u00A7a---" | Set-Content "`$Path\server.properties"
 
-        (Get-Content "$Path\eula.txt" -Raw) -replace 'false','true' | Set-Content "$Path\eula.txt"
+        (Get-Content "`$Path\eula.txt" -Raw) -replace 'false','true' | Set-Content "`$Path\eula.txt"
 } catch {
         throw "Could not change server.properties and/or eula.txt.`nCheck if these files exist, and have write permissions."
 }
 
 Write-Host "Done."
-    }
-        # substitute variable values
-        $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
-        Set-Content -Path "$Path\configure_server.ps1" -Value $contentsString
+"@
+        Set-Content -Path "$Path\configure_server.ps1" -Value $contents
         Write-Host "DONE" -ForegroundColor Green
         Write-Host ""
     }
@@ -240,46 +246,43 @@ Write-Host "Done."
         Write-Host "CREATING start.ps1 ..." -ForegroundColor Green
         Write-Host "Run the start.ps1 file after the server setup is complete and after running configure_server.ps1"
 
-        $contents = {
+        $contents = @"
 param(
     [Int16]
     [Parameter(HelpMessage="amount of RAM in MB allocated to server to run")]
-    $_RAM_MB=$RAM_MB
+    `$RAM_MB=$RAM_MB
+    ,
+    [string]
+    [Parameter(HelpMessage="server.jar file to use")]
+    `$JarFile="$JarFile"
     ,
     [string]
     [Parameter(HelpMessage="extra args to pass to java executable (in addition to memory allocation)")]
-    $_JavaArgs=$JavaArgs
+    `$JavaArgs="$JavaArgs"
     ,
     [string]
     [Parameter(HelpMessage="extra args to pass to server jar file")]
-    $_JarArgs=$JarArgs
+    `$JarArgs="$JarArgs"
     ,
     [string]
     [Parameter(HelpMessage="extra args to pass to ngrok executable (example: -region=uk or -region=in)")]
-    $_NgrokArgs=$NgrokArgs
+    `$NgrokArgs="$NgrokArgs"
 )
 Write-Host "Starting server..."
 Write-Host "To stop server, type the command `stop` or `/stop` in the server console, and close the ngrok cmd window that appears"
 Write-Host "You can also pass arguments to this script to change the amount of RAM_MB or JavaArgs or NgrokArgs for a specific session" -Grey
 Write-Host ""
 
-$_Name="$Name"
-$_Path="$Path"
-$_Type="$Type"
-$_RAM_MB=$RAM_MB
-$_AllowOffline=`$$AllowOffline
-$_JarFile="$JarFile"
-$_JavaArgs="$JavaArgs"
-$_JarArgs="$JarArgs"
-$_NgrokArgs="$NgrokArgs"
+`$Name="$Name"
+`$Path="$Path"
+`$Type="$Type"
 
-Start-Process -FilePath "cmd" -ArgumentList "/k .\ngrok tcp $_NgrokArgs 25565"
+Start-Process -FilePath "cmd" -ArgumentList "/c .\ngrok tcp `$NgrokArgs 25565"
 
-cmd /c "java -Xms${_RAM_MB}M -Xmx${_RAM_MB}M $_JavaArgs -jar $_JarFile $_JarArgs"
-    }
-        # substitute variable values
-        $contentsString=$ExecutionContext.InvokeCommand.ExpandString($contents)
-        Set-Content -Path "$Path\start.ps1" -Value $contentsString
+`$Command="java -Xms`${RAM_MB}M -Xmx`${RAM_MB}M `$JavaArgs -jar `$JarFile `$JarArgs"
+& `$([scriptblock]::Create(`$Command))
+"@
+        Set-Content -Path "$Path\start.ps1" -Value $contents
         Write-Host "DONE" -ForegroundColor Green
         Write-Host ""
     }
