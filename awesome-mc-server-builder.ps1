@@ -76,10 +76,6 @@ begin {
         throw "This script only works on Windows OS currently :("
     }
 
-    # If ($PSEdition -eq "Core"){
-    #     throw "This script only works with Windows Powershell v5 currently :(`nUse executable ``powershell.exe`` instead of ``pwsh.exe``"
-    # }
-
     If (!(Test-Path $Location)){
         throw "Location '$Location' does not exist"
     }
@@ -118,14 +114,15 @@ begin {
         
         Write-Host "Installing fabric server ..."
         Start-Sleep 5
-        $Command="java -jar $DownloadPath server -dir $Path -downloadMinecraft > $Path\installing-fabric-server.log"
-        Start-Job -ScriptBlock $([scriptblock]::create($Command)) | Show-Progress
+        $InstallServerCommand="java -jar $DownloadPath server -dir $Path -downloadMinecraft > $Path\installing-fabric-server.log"
+        & $([scriptblock]::create($InstallServerCommand))
         Write-Host "Done."
         
         Write-Host "Running fabric server ..."
+        Start-Sleep 5
         $JarFile="$Path\fabric-server-launch.jar"
-        $Command="java -Xmx${RAM_MB}M -jar $JarFile -initSettings -nogui > $Path\running-fabric-server.log"
-        Start-Job -ScriptBlock $([scriptblock]::create($Command)) | Show-Progress
+        $RunServerCommand="java -Xmx${RAM_MB}M -jar $JarFile -initSettings -nogui > $Path\running-fabric-server.log"
+        & $([scriptblock]::create($RunServerCommand))
         $global:JarFile=$JarFile
         Write-Host "Done."
     }
@@ -190,7 +187,7 @@ begin {
 
         Write-Host "Setting up ngrok..."
         $Command=".\ngrok authtoken $Authtoken > $Path\ngrok-auth.log"
-        Start-Job -ScriptBlock $([scriptblock]::create($Command)) | Show-Progress
+        & $([scriptblock]::create($Command))
         Write-Host "Done."
         Write-Host "DONE" -ForegroundColor Green
         Write-Host ""
@@ -334,43 +331,6 @@ INSTRUCTIONS:
         # eg: <a href='index.html'>home</a>
         # will return home, i.e., the link text
         return [regex]::Match($Link.outerHTML,">.+<").Value.Trim('><')
-    } 
-
-    function Show-Progress {
-        [CmdletBinding()]
-        param (
-            [Parameter(ValueFromPipeline)]
-            [System.Management.Automation.Job]
-            $Job
-            ,
-            [string]
-            [ValidateSet('basic_spinner','wave')]
-            $Type="basic_spinner"
-            ,
-            [int]
-            $Delay=500
-        )
-
-        Write-Host "`b`b" -NoNewline
-        $SB = switch ($Type) {
-            "basic_spinner" {
-                    {
-                    $chrs=@('-','\','|','/')
-                    foreach ($c in $chrs){
-                        Write-Host $c -NoNewLine
-                        Start-Sleep -Milliseconds $Delay
-                        Write-Host "`b" -NoNewLine
-                    }
-                }
-            }
-            "wave" {
-                    {}
-            }
-            Default { {} }
-        }
-        while ($Job.State -notin $JobEndStates) {
-            $SB.Invoke()
-        }
     }
 
     function Start-SetupWizard {
