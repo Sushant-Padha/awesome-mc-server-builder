@@ -270,12 +270,14 @@ param(
 )
 Write-Host "Starting server..."
 Write-Host "To stop server, type the command `stop` or `/stop` in the server console, and close the ngrok cmd window that appears"
-Write-Host "You can also pass arguments to this script to change the amount of RAM_MB or JavaArgs or NgrokArgs for a specific session" -Grey
+Write-Host "You can also pass arguments to this script to change the amount of RAM_MB or JavaArgs or NgrokArgs for a specific session" -ForegorundColor Grey
 Write-Host ""
 
 `$Name="$Name"
 `$Path="$Path"
 `$Type="$Type"
+
+Set-Location `$Path
 
 Start-Process -FilePath "cmd" -ArgumentList "/c .\ngrok tcp `$NgrokArgs 25565"
 
