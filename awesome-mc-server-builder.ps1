@@ -218,6 +218,8 @@ Write-Host "Configuring Server..."
 `$RAM_MB=$RAM_MB
 `$AllowOffline=`$$AllowOffline
 
+Set-Location `$Path
+
 try {
 
         If (`$AllowOffline){
